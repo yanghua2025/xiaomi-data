@@ -1,27 +1,42 @@
-
-import yfinance as yf
-from datetime import datetime
+import requests
+import datetime
+import csv
 import json
 
-symbol = "1810.HK"
-today = datetime.now().strftime("%Y-%m-%d")
+# 获取今日日期（香港时间）
+today = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+trade_date = today.strftime("%Y-%m-%d")
 
-data = yf.download(symbol, period="2d", interval="1d")
-if len(data) < 2:
-    raise ValueError("Failed to fetch Xiaomi stock data")
+# 港交所CSV链接（固定路径 + 日期）
+hkex_url = "https://www1.hkex.com.hk/hkexwidget/data/getHKEXStockQuote?stockcode=1810&lang=chi"
 
-latest = data.iloc[-1]
-json_data = {
-    "date": today,
-    "symbol": "01810.HK",
-    "open": round(latest["Open"], 2),
-    "high": round(latest["High"], 2),
-    "low": round(latest["Low"], 2),
-    "close": round(latest["Close"], 2)
-}
+# 发起请求（使用港交所公开接口）
+response = requests.get(hkex_url, timeout=10)
+data = response.json()
 
-filename = f"xiaomi-{today}.json"
-with open(filename, "w") as f:
-    json.dump(json_data, f, indent=2)
+# 提取核心行情字段（使用港交所接口结构）
+try:
+    quote = data['stockQuote']['quote']
+    open_price = float(quote['open'])
+    high_price = float(quote['high'])
+    low_price = float(quote['low'])
+    close_price = float(quote['close'])
 
-print(f"Saved {filename}")
+    output = {
+        "symbol": "01810.HK",
+        "date": trade_date,
+        "open": open_price,
+        "high": high_price,
+        "low": low_price,
+        "close": close_price
+    }
+
+    # 保存为 JSON 文件
+    filename = f"xiaomi-{trade_date}.json"
+    with open(filename, 'w') as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+    print("✅ 数据抓取成功，文件已保存：", filename)
+
+except Exception as e:
+    print("❌ 抓取失败：", e)
