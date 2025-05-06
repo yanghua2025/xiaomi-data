@@ -1,0 +1,33 @@
+
+name: Update Xiaomi JSON Daily
+
+on:
+  schedule:
+    - cron: '30 6 * * *'  # 每天香港时间 14:30 执行（UTC时间 6:30）
+  workflow_dispatch:
+
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests yfinance
+
+      - name: Run update script
+        run: python update_xiaomi_json.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'yanghua2025-bot'
+          git config --global user.email 'yanghua2025@users.noreply.github.com'
+          git add .
+          git commit -m "Auto-update Xiaomi JSON"
+          git push
